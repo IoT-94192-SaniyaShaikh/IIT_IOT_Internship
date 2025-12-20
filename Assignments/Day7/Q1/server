@@ -1,0 +1,68 @@
+
+from datetime import datetime
+from flask import Flask,request
+from utils.executequery import executequery
+from utils.executeselect import executeselectquery
+server=Flask(__name__)
+
+@server.get('/')
+def gomepage():
+    return "<html><body><h1>This is home page</h1></body></html>"
+
+@server.post('/sensor_readings')
+def create_iot_data():
+    id=request.form.get('id')
+    temperature=request.form.get('temperature')
+    humidity=request.form.get('humidity')
+    timestamp = datetime.now()
+    query=f"insert into sensor_readings values({id},{temperature},{humidity},'{timestamp}');"
+    executequery(query=query)
+    return "sensor_readings is added successfully "
+
+@server.get('/sensor_readings')
+def retrieve_sensor_reading():
+    query ="select * from sensor_readings ;"
+    data=executeselectquery(query=query)
+    formatted_data= []
+    for row in data:
+        formatted_data.append((
+            row[0],
+            row[1],
+            row[2],
+            row[3].strftime("%Y-%m-%d %H:%M:%S")
+        ))
+    return f"sensor_readings :{formatted_data}"
+
+@server.put('/sensor_readings')
+def update_sensor_readings():
+    id=request.form.get('id')
+    temperature=request.form.get('temperature')
+    query=f"update sensor_readings SET temperature='{temperature}' where id='{id}';"
+    executequery(query=query)  
+    return "sensor_readings is updated successfully"
+
+@server.delete('/sensor_readings')
+def delete_sensor_readings():
+    temperature =request.form.get('temperature')
+    query=f"delete from sensor_readings where temperature='{temperature}';"
+    executequery(query=query)  
+    return "sensor_readings is deleted successfully" 
+
+@server.get('/sensor_readings/high_temp')
+def get_high_temp():
+    temp = request.args.get('temperature')  
+    query = f"SELECT * FROM sensor_readings WHERE temperature > {temp};"
+    data = executeselectquery(query=query)
+    formatted_data= []
+    for row in data:
+        formatted_data.append((
+            row[0],
+            row[1],
+            row[2],
+            row[3].strftime("%Y-%m-%d %H:%M:%S")
+        ))
+
+    return f"High temperature readings: {formatted_data}"
+
+if __name__ =='__main__':
+   server.run(host='0.0.0.0',port=4000,debug=True)
